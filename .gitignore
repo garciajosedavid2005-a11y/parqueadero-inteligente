@@ -1,0 +1,20 @@
+# Entorno virtual y cachés de Python
+venv/
+__pycache__/
+*.pyc
+
+# Imágenes de depuración que genera placa.py
+modelo/salida/
+
+# Dataset sintético (pesado y se regenera con generar_dataset.py)
+entrenamiento/dataset_caracteres.npz
+
+# Fotos de vehículos: pueden tener datos personales o derechos de autor
+entrenamiento/fotos/
+
+# Secretos y configuración local (por ejemplo, la cadena de MongoDB Atlas)
+.env
+
+# Editor y frontend
+.vscode/
+node_modules/
