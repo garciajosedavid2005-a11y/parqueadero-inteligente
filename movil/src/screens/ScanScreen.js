@@ -57,9 +57,8 @@ export default function ScanScreen({ onNavigateToActive }) {
     try {
       const pickerResult = await ImagePicker.launchCameraAsync({
         mediaTypes: ['images'],
-        allowsEditing: true, // Permite encuadrar y recortar la placa antes de enviar
-        aspect: [16, 9],
-        quality: 0.85,
+        flash: 'auto',   // mejora lectura en poca luz (flashes si hace falta)
+        quality: 1.0,    // sin compresión: imagen más completa para el modelo
         base64: true,
       });
 
@@ -83,7 +82,7 @@ export default function ScanScreen({ onNavigateToActive }) {
       const pickerResult = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsEditing: true,
-        quality: 0.85,
+        quality: 1.0,
         base64: true,
       });
 

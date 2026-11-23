@@ -132,8 +132,24 @@ def _separar_pegados(binaria, cajas):
     return nuevas if len(nuevas) <= 6 else cajas
 
 
+def _mejor_lectura(chars):
+    """Lee los caracteres probando las dos interpretaciones posibles (AAA123
+    y AAA12A) y devuelve (texto, confs) de la más confiable. Las lecturas
+    que cumplen la expresión regular ganan sobre las demás."""
+    opciones = []
+    for es_carro in (True, False):
+        texto, confs = clasificar(chars, es_carro)
+        valido = bool(REGEX_PLACA.match(texto))
+        media = float(np.mean(confs)) if confs else 0.0
+        opciones.append((valido, media, texto, confs))
+    opciones.sort(key=lambda o: (o[0], o[1]), reverse=True)
+    _, _, texto, confs = opciones[0]
+    return texto, confs
+
+
 def segmentar(placa_bgr):
-    """Devuelve (caracteres_32x32, cajas, binaria, placa_redimensionada)."""
+    """Devuelve un dict: caracteres normalizados, cajas, binaria y placa,
+    eligiendo la segmentación cuyo texto se lee con mayor confianza."""
     esc = 100 / placa_bgr.shape[0]
     placa = cv2.resize(placa_bgr, None, fx=esc, fy=esc)
 
@@ -142,15 +158,19 @@ def segmentar(placa_bgr):
         cajas, b = _extraer_cajas(binaria)
         if 2 <= len(cajas) < 6:
             cajas = _separar_pegados(b, cajas)
-        if mejor is None or abs(len(cajas) - 6) < abs(len(mejor[0]) - 6):
-            mejor = (cajas, b)
-        if len(cajas) == 6:
+        cajas = sorted(cajas, key=lambda c: c[0])
+        chars = [normalizar(b[y:y + h, x:x + w]) for x, y, w, h in cajas]
+        if not chars:
+            continue
+        texto, confs = _mejor_lectura(chars)
+        conf = float(np.mean(confs)) if confs else 0.0
+        valido = bool(REGEX_PLACA.match(texto))
+        if mejor is None or (valido, conf) > (mejor["valido"], mejor["conf"]):
+            mejor = dict(chars=chars, cajas=cajas, binaria=b, placa=placa,
+                         texto=texto, confs=confs, conf=conf, valido=valido)
+        if valido and conf > 0.9:
             break
-
-    cajas, binaria = mejor
-    cajas = sorted(cajas, key=lambda c: c[0])
-    chars = [normalizar(binaria[y:y + h, x:x + w]) for x, y, w, h in cajas]
-    return chars, cajas, binaria, placa
+    return mejor
 
 
 # LEER
@@ -191,12 +211,13 @@ def buscar_placa(img):
     for (x, y, w, h) in candidatas(img):
         px, py = int(0.02 * w), int(0.04 * h)
         recorte = img[max(0, y - py):y + h + py, max(0, x - px):x + w + px]
-        chars, cajas, binaria, placa = segmentar(recorte)
-        intento = dict(rect=(x, y, w, h), chars=chars, cajas=cajas,
-                       binaria=binaria, placa=placa)
-        if mejor is None or abs(len(chars) - 6) < abs(len(mejor["chars"]) - 6):
+        intento = segmentar(recorte)
+        if intento is None:
+            continue
+        intento["rect"] = (x, y, w, h)
+        if mejor is None or (intento["valido"], intento["conf"]) > (mejor["valido"], mejor["conf"]):
             mejor = intento
-        if len(chars) == 6:
+        if intento["valido"] and intento["conf"] > 0.9:
             break
     return mejor
 
@@ -214,11 +235,11 @@ def leer_imagen(img, guardar_debug=False, nombre="imagen"):
     if mejor is None or len(mejor["chars"]) == 0:
         return dict(texto="", confianza=0.0, valida=False, n_chars=0)
 
-    _, _, rw, rh = mejor["rect"]
-    es_carro = rw / rh >= 1.6              
-    texto, confs = clasificar(mejor["chars"], es_carro)
-    resultado = dict(texto=texto, confianza=float(np.mean(confs)),
-                     valida=bool(REGEX_PLACA.match(texto)), n_chars=len(mejor["chars"]))
+    texto = mejor["texto"] or ""
+    resultado = dict(texto=texto,
+                     confianza=float(np.mean(mejor["confs"])) if mejor["confs"] else 0.0,
+                     valida=bool(REGEX_PLACA.match(texto)),
+                     n_chars=len(mejor["chars"]))
 
     if guardar_debug:
         os.makedirs(CARPETA_SALIDA, exist_ok=True)
