@@ -1,0 +1,40 @@
+{
+  "expo": {
+    "name": "Parqueadero Inteligente",
+    "slug": "parqueadero-inteligente-movil",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Esta app necesita acceso a la cámara para capturar la placa de los vehículos.",
+        "NSPhotoLibraryUsageDescription": "Esta app necesita acceder a tus fotos para seleccionar placas vehiculares ya guardadas."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0F172A",
+        "foregroundImage": "./assets/android-icon-foreground.png"
+      },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Permite acceder a la galería para subir fotos de placas vehiculares.",
+          "cameraPermission": "Permite usar la cámara para fotografiar placas vehiculares en tiempo real."
+        }
+      ]
+    ],
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
